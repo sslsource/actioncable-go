@@ -225,8 +225,6 @@ func (c *Client) connOnce(url string, f func()) error {
 	c.resubscribe()
 
 	for {
-		go c.receiveMsg(conn, recvc)
-
 		select {
 		case <-c.donec:
 			return nil
@@ -320,12 +318,14 @@ func (c *Client) getSub(name string) chan *EventOrErr {
 }
 
 func (c *Client) receiveMsg(conn *websocket.Conn, recvc chan<- EventOrErr) {
-	event := &Event{}
-	if err := conn.ReadJSON(event); err != nil {
-		recvc <- EventOrErr{Err: err}
-		return
+	for {
+		event := &Event{}
+		if err := conn.ReadJSON(event); err != nil {
+			recvc <- EventOrErr{Err: err}
+			return
+		}
+		recvc <- EventOrErr{Event: event}
 	}
-	recvc <- EventOrErr{Event: event}
 }
 
 func (c *Client) resubscribe() {
